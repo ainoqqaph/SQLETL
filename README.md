@@ -1,6 +1,6 @@
-# 企業級自動化資料倉儲與 ETL 數據管線 (Enterprise Data Warehouse & ETL Pipeline)
+# 自動化資料倉儲與 ETL 數據管線 (Enterprise Data Warehouse & ETL Pipeline)
 
-本專案為「跨國市場情報戰情室」的底層核心資料庫架構。採用 Microsoft SQL Server，遵循星狀模型 (Star Schema) 設計，並結合進階 T-SQL 預存程序 (Stored Procedures) 實現全自動化的 ETL (Extract, Transform, Load) 流程與數據品質監控。
+本專案為用 Microsoft SQL Server，遵循星狀模型 (Star Schema) 設計，並結合進階 T-SQL 預存程序 (Stored Procedures) 實現全自動化的 ETL (Extract, Transform, Load) 流程與數據品質監控。
 
 ### 1. 星狀模型資料倉儲設計 (Star Schema Design)
 - 維度表 (Dimension Tables)：建立 KeywordsMaster、RegionsMaster、DimDate，將商業意圖、產業分類與地理資訊標準化。
