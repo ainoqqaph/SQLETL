@@ -1,0 +1,691 @@
+1. 維度表 (Dimension Tables) - 主資料
+========================================================
+📋 dbo.KeywordsMaster
+用途：關鍵字主檔
+==============
+
+欄位：
+- KeywordID (PK)：關鍵字唯一識別碼
+- Keyword：關鍵字文字（例如："ChatGPT"）
+- Category：類別（例如："Technology"）
+- SearchIntent：搜尋意圖（例如："Informational"）
+- CreatedAt：建立時間
+
+用途說明：
+✅ 儲存所有追蹤的關鍵字
+✅ 作為其他表的主鍵參照
+✅ 維護關鍵字的分類和屬性
+
+資料範例：
+KeywordID | Keyword        | Category    | SearchIntent
+1         | ChatGPT        | Technology  | Informational
+2         | NBA            | Sports      | Navigational
+3         | Taylor Swift   | Entertainment | Navigational
+
+
+========================================================
+📋 dbo.RegionsMaster
+用途：地區主檔
+==============
+
+欄位：
+- RegionID (PK)：地區唯一識別碼
+- RegionCode：地區代碼（例如："US", "TW"）
+- RegionName：地區名稱（例如："美國", "台灣"）
+- CreatedAt：建立時間
+
+用途說明：
+✅ 儲存追蹤的地區清單
+✅ 對應 Google Trends 的地區代碼
+✅ 支援多地區分析
+
+資料範例：
+RegionID | RegionCode | RegionName
+1        | US         | 美國
+2        | TW         | 台灣
+3        | GB         | 英國
+
+
+========================================================
+dbo.DimDate
+用途：日期維度表
+===============
+
+欄位：
+- DateKey (PK)：日期鍵值（INT，例如：2026021800）
+- Date：日期（DATE）
+- Year, Quarter, Month, Day, Hour：時間分層
+- DayOfWeek：星期幾
+- IsHoliday：是否為假日
+- ... 其他時間相關欄位
+
+用途說明：
+✅ 提供完整的時間維度
+✅ 支援各種時間粒度分析（年/季/月/日/時）
+✅ 用於 SSAS Cube 的時間維度
+
+資料範例：
+DateKey    | Date       | Year | Month | Day | Hour
+2026021800 | 2026-02-18 | 2026 | 2     | 18  | 0
+2026021801 | 2026-02-18 | 2026 | 2     | 18  | 1
+
+
+========================================================
+2. 事實表 (Fact Tables) - 交易資料
+========================================================
+📋 dbo.DailyTrendSnapshots
+用途：每日趨勢快照（核心事實表）
+================================
+
+欄位：
+- SnapshotID (PK)：快照唯一識別碼
+- SnapshotDate：快照日期
+- KeywordID (FK)：關鍵字 ID
+- RegionID (FK)：地區 ID
+- SearchVolume：搜尋量
+- TrendRank：排名
+- RankChange：排名變化
+- VolumeChangeRate：搜尋量變化率
+- IsNewEntry：是否新上榜
+- CreatedAt：建立時間
+
+用途說明：
+✅ 儲存每日的 Google Trends 排名資料
+✅ 記錄關鍵字的搜尋量和排名變化
+✅ 支援趨勢分析和歷史比較
+
+資料範例：
+SnapshotDate | KeywordID | RegionID | SearchVolume | TrendRank | RankChange
+2026-02-18   | 1         | 1        | 2500000      | 1         | 0
+2026-02-18   | 2         | 1        | 2000000      | 2         | +5
+2026-02-17   | 1         | 1        | 2400000      | 1         | -2
+
+
+========================================================
+📋 dbo.KeywordCoOccurrence
+用途：關鍵字共現關係（關聯分析）
+================================
+
+欄位：
+- CoOccurrenceID (PK)：共現唯一識別碼
+- Keyword1ID (FK)：第一個關鍵字
+- Keyword2ID (FK)：第二個關鍵字
+- RegionID (FK)：地區 ID
+- OccurrenceDate：共現日期
+- Keyword1Rank：關鍵字1排名
+- Keyword2Rank：關鍵字2排名
+- RankDifference：排名差距
+- CoOccurrenceScore：共現分數（0-100）
+- RelationStrength：關聯強度
+
+用途說明：
+✅ 分析哪些關鍵字經常一起出現在榜單上
+✅ 發現關鍵字之間的關聯性
+✅ 支援關聯規則挖掘
+
+資料範例：
+Keyword1      | Keyword2       | CoOccurrenceScore | RelationStrength
+ChatGPT       | AI             | 95                | Strong
+iPhone 15     | Apple          | 88                | Strong
+NBA           | LeBron James   | 72                | Medium
+
+
+========================================================
+📋 dbo.KeywordRegionStats
+用途：關鍵字地區統計（彙總資料）
+================================
+
+欄位：
+- StatsID (PK)：統計唯一識別碼
+- LogDate：統計日期
+- KeywordID (FK)：關鍵字 ID
+- RegionID (FK)：地區 ID
+- SearchVolume：搜尋量
+- AppearanceCount：出現次數
+- TrendRank：平均排名
+- CreatedAt：建立時間
+
+用途說明：
+✅ 儲存關鍵字在特定地區的統計資訊
+✅ 加速地區比較分析
+✅ 支援跨地區熱度分析
+
+資料範例：
+LogDate    | KeywordID | RegionID | SearchVolume | AppearanceCount
+2026-02-18 | 1         | 1        | 2500000      | 24
+2026-02-18 | 1         | 2        | 800000       | 20
+
+
+========================================================
+3. 監控與品質表 (Monitoring & Quality Tables)
+========================================================
+📋 dbo.CrawlerExecutionLog
+用途：爬蟲執行日誌
+==================
+
+欄位：
+- ExecutionID (PK)：執行唯一識別碼
+- ExecutionDate：執行日期
+- Status：執行狀態（成功/失敗）
+- RegionsScraped：抓取的地區數量
+- TotalKeywordsFound：找到的關鍵字總數
+- NewKeywordsAdded：新增的關鍵字數
+- KeywordsSearched：搜尋的關鍵字數
+- DurationSeconds：執行時間（秒）
+- ErrorMessage：錯誤訊息
+- CreatedAt：建立時間
+
+用途說明：
+✅ 記錄每次爬蟲執行的結果
+✅ 監控爬蟲健康度
+✅ 追蹤資料收集效率
+
+資料範例：
+ExecutionDate | Status | RegionsScraped | TotalKeywordsFound | DurationSeconds
+2026-02-18    | 成功   | 7              | 490                | 120
+2026-02-17    | 成功   | 7              | 485                | 115
+
+
+========================================================
+📋 dbo.DataQualityLog
+用途：資料品質日誌
+==================
+
+欄位：
+- QualityID (PK)：品質檢查唯一識別碼
+- CheckDate：檢查日期
+- RegionID (FK)：地區 ID（可為 NULL，表示全局檢查）
+- TotalKeywords：總關鍵字數
+- KeywordsWithVolume：有搜尋量的關鍵字數
+- KeywordsWithRank：有排名的關鍵字數
+- NewKeywords：新關鍵字數
+- VolumeCompleteness：搜尋量完整度（%）
+- RankCompleteness：排名完整度（%）
+- CategoryCompleteness：分類完整度（%）
+- ErrorCount：錯誤數量
+- WarningCount：警告數量
+- CreatedAt：建立時間
+
+用途說明：
+✅ 監控資料品質指標
+✅ 發現資料缺失或異常
+✅ 支援品質趨勢分析
+
+資料範例：
+CheckDate  | TotalKeywords | VolumeCompleteness | RankCompleteness
+2026-02-18 | 490           | 92.5%              | 95.2%
+2026-02-17 | 485           | 91.8%              | 94.8%
+
+
+========================================================
+📋 dbo.QualityAlerts
+用途：品質告警表
+================
+
+欄位：
+- AlertID (PK)：告警唯一識別碼
+- AlertDate：告警日期
+- RelatedQualityID (FK)：關聯的品質檢查 ID
+- RegionID (FK)：地區 ID
+- AlertType：告警類型（DataMissing, LowCompleteness, etc.）
+- Severity：嚴重程度（Critical, Warning, Info）
+- AlertMessage：告警訊息
+- IsResolved：是否已解決
+- CreatedAt：建立時間
+
+用途說明：
+✅ 記錄資料品質問題
+✅ 觸發警示通知
+✅ 追蹤問題解決狀態
+
+資料範例：
+AlertDate  | AlertType       | Severity | AlertMessage
+2026-02-18 | LowCompleteness | Warning  | 搜尋量完整度低於 90%
+2026-02-15 | DataMissing     | Critical | 地區 TW 資料缺失
+
+
+========================================================
+📋 dbo.KeywordsLog
+用途：關鍵字搜尋日誌
+====================
+
+欄位：
+- LogID (PK)：日誌唯一識別碼
+- LogDate：日誌日期
+- KeywordID (FK)：關鍵字 ID
+- Status：搜尋狀態（Success, Fail）
+- CrawlTime：抓取時間（毫秒）
+- CreatedAt：建立時間
+
+用途說明：
+✅ 記錄每個關鍵字的搜尋結果
+✅ 監控關鍵字搜尋成功率
+✅ 分析搜尋效能
+
+資料範例：
+LogDate    | KeywordID | Status  | CrawlTime
+2026-02-18 | 1         | Success | 350
+2026-02-18 | 2         | Success | 420
+2026-02-18 | 3         | Fail    | 5000
+
+
+========================================================
+4. 輔助表 (Helper Tables)
+========================================================
+📋 dbo.RelatedQueriesLog
+用途：相關查詢日誌
+==================
+
+欄位：
+- RelatedQueryID (PK)
+- KeywordID (FK)
+- RelatedQuery：相關查詢詞
+- RelationType：關聯類型（Top, Rising）
+- Value：相關度分數
+- LogDate：日誌日期
+
+用途說明：
+✅ 儲存 Google Trends 的相關查詢
+✅ 發現新興趨勢
+✅ 擴展關鍵字覆蓋
+
+資料範例：
+Keyword  | RelatedQuery    | RelationType | Value
+ChatGPT  | OpenAI          | Top          | 95
+ChatGPT  | GPT-4           | Rising       | Breakout
+
+
+========================================================
+📋 dbo.DataQualityRules
+用途：資料品質規則定義
+======================
+
+欄位：
+- RuleID (PK)
+- RuleName：規則名稱
+- RuleDescription：規則描述
+- RuleType：規則類型
+- Threshold：閾值
+- IsActive：是否啟用
+
+用途說明：
+✅ 定義資料品質檢查規則
+✅ 設定告警閾值
+✅ 支援規則配置管理
+
+資料範例：
+RuleName              | RuleType     | Threshold | IsActive
+VolumeCompleteness    | Completeness | 90%       | True
+RankCompleteness      | Completeness | 95%       | True
+
+
+========================================================
+========================================================
+📈 檢視 (Views) 
+========================================================
+========================================================
+📊 dbo.vw_CoOccurrenceAnalysis
+用途：共現分析視圖
+==================
+
+來源：KeywordCoOccurrence + KeywordsMaster
+
+提供：
+✅ 關鍵字共現矩陣
+✅ 關聯強度分析
+✅ 網絡關係視圖
+
+用於：
+- SSAS Cube 的關鍵字關係維度
+- Power BI 的關聯分析報表
+
+
+========================================================
+📊 dbo.vw_CrawlerExecutionSummary
+用途：爬蟲執行摘要
+==================
+
+來源：CrawlerExecutionLog
+
+提供：
+✅ 每日執行統計
+✅ 成功率計算
+✅ 效能指標
+
+用於：
+- 監控儀表板
+- 執行效率分析
+
+========================================================
+📊 dw_DailyTrendSummary
+用途：每日趨勢摘要
+==================
+
+來源：DailyTrendSnapshots + KeywordsMaster + RegionsMaster
+
+提供：
+✅ 每日 Top N 關鍵字
+✅ 趨勢變化摘要
+✅ 地區比較
+
+用於：
+- SSAS Fact Table
+- 日報生成
+
+
+========================================================
+📊 dbo.vw_DataQualityDashboard
+用途：資料品質儀表板
+====================
+
+來源：DataQualityLog + QualityAlerts
+
+提供：
+✅ 品質指標彙總
+✅ 告警統計
+✅ 趨勢分析
+
+用於：
+- 品質監控儀表板
+- 每日品質報告
+
+
+========================================================
+📊 dbo.vw_FactKeywordRelations
+用途：關鍵字關係事實視圖
+====================================
+
+來源：KeywordCoOccurrence
+
+轉換：
+✅ 將 OccurrenceDate 轉為 DateKey (INT, yyyyMMddHH)
+✅ 新增計算欄位
+✅ 格式化為 SSAS 可用結構
+
+用於：
+- SSAS Cube 的 Fact Keyword Relations 度量群組
+
+
+========================================================
+📊 dbo.vw_FactQualityMetrics
+用途：品質指標事實視圖
+==================================
+
+來源：CrawlerExecutionLog + DataQualityLog
+
+轉換：
+✅ 合併執行日誌和品質檢查
+✅ 計算整體品質分數
+✅ 格式化日期為 DateKey
+
+用於：
+- SSAS Cube 的 Fact Quality Metrics 度量群組
+
+
+========================================================
+📊 dbo.vw_KeywordRegionStats
+用途：關鍵字地區統計視圖
+====================================
+
+來源：KeywordRegionStats
+
+轉換：
+✅ LogDate → DateKey (yyyyMMddHH)
+✅ 新增 RankBucket（Top 10, Top 25, Top 50）
+✅ 新增 RecordCount
+
+用於：
+- SSAS Cube 的 Vw Keyword Region Stats 度量群組
+- 地區比較分析
+
+
+========================================================
+📊 dbo.vw_KeywordRelationNetwork
+用途：關鍵字關係網絡
+====================
+
+來源：KeywordCoOccurrence
+
+提供：
+✅ 網絡圖資料結構
+✅ 節點和邊的定義
+✅ 關係強度權重
+
+用於：
+- 網絡視覺化
+- 社群偵測
+- 影響力分析
+
+
+========================================================
+📊 dbo.vw_KeywordRelationSummary
+用途：關鍵字關係摘要
+====================
+
+來源：KeywordCoOccurrence
+
+彙總：
+✅ 每個關鍵字的關聯數量
+✅ 平均關聯強度
+✅ Top 關聯關鍵字
+
+用於：
+- 關鍵字影響力排名
+- 關聯度報表
+
+
+========================================================
+📊 dbo.vw_KeywordsLog
+用途：關鍵字搜尋日誌視圖
+====================================
+
+來源：KeywordsLog
+
+轉換：
+✅ LogDate → DateKey
+✅ 新增 SearchCount, SuccessCount, FailCount
+
+用於：
+- SSAS Cube 的 Vw Keywords Log 度量群組
+- 搜尋成功率分析
+
+
+========================================================
+📊 dbo.vw_KeywordTrendHistory
+用途：關鍵字趨勢歷史
+====================
+
+來源：DailyTrendSnapshots
+
+提供：
+✅ 時間序列資料
+✅ 排名變化軌跡
+✅ 搜尋量趨勢
+
+用於：
+- 趨勢圖表
+- 歷史分析
+- 預測建模
+
+
+========================================================
+📊 dbo.vw_QualityAlerts
+用途：品質告警視圖（SSAS 用）
+==============================
+
+來源：QualityAlerts
+
+轉換：
+✅ AlertDate → DateKey
+✅ 新增各嚴重程度計數
+✅ 新增已解決/未解決計數
+
+用於：
+- SSAS Cube 的 Vw Quality Alerts 度量群組
+- 告警監控儀表板
+
+
+========================================================
+📊 dbo.vw_QualityTrend
+用途：品質趨勢視圖
+==================
+
+來源：DataQualityLog
+
+提供：
+✅ 品質指標時間序列
+✅ 完整度趨勢
+✅ 品質分數變化
+
+用於：
+- 品質趨勢圖
+- 長期品質監控
+
+
+========================================================
+📊 dbo.vw_TopRisingKeywords
+用途：上升關鍵字排行
+====================
+
+來源：DailyTrendSnapshots
+
+篩選：
+✅ RankChange > 0（排名上升）
+✅ 依上升幅度排序
+✅ Top N
+
+用於：
+- 上升關鍵字排行榜
+- 新興趨勢發現
+
+
+
+
+========================================================
+========================================================
+🔗 表之間的關聯關係
+========================================================
+========================================================
+
+核心關聯圖：
+==========
+
+KeywordsMaster (1) ──< (N) DailyTrendSnapshots
+    │                         │
+    │                         │
+    │                    RegionsMaster (1) ──< (N)
+    │                         │
+    │                         │
+    └──< (N) KeywordCoOccurrence >──┘
+    │
+    └──< (N) KeywordRegionStats >── RegionsMaster
+    │
+    └──< (N) KeywordsLog
+    │
+    └──< (N) RelatedQueriesLog
+
+
+監控關聯圖：
+==========
+
+CrawlerExecutionLog (1) ──< (N) DataQualityLog
+                                      │
+                                      │
+                                 QualityAlerts (N) ──< (1)
+                                      │
+                                 RegionsMaster (0..1)
+
+
+時間維度關聯：
+============
+
+DimDate (1) ──< (N) DailyTrendSnapshots
+    │
+    ├──< (N) KeywordCoOccurrence
+    │
+    ├──< (N) KeywordRegionStats
+    │
+    ├──< (N) KeywordsLog
+    │
+    ├──< (N) CrawlerExecutionLog
+    │
+    └──< (N) DataQualityLog
+
+
+========================================================
+========================================================
+========================================================
+
+📊 表的使用頻率與重要性
+
+==================================================================================
+==================================================================================
+表名			類型		重要性		更新頻率	資料量
+DailyTrendSnapshots	Fact		⭐⭐⭐⭐⭐	每日		大
+KeywordsMaster	      	Dimension	⭐⭐⭐⭐⭐	不定期		中
+RegionsMaster	      	Dimension	⭐⭐⭐⭐⭐	很少		小
+DimDate	              	Dimension	⭐⭐⭐⭐⭐	預載		中
+KeywordCoOccurrence	Fact		⭐⭐⭐⭐	每日		大
+KeywordRegionStats	Fact		⭐⭐⭐⭐	每日		中
+DataQualityLog	      	Monitoring	⭐⭐⭐⭐	每日		小
+CrawlerExecutionLog   	Monitoring	⭐⭐⭐⭐	每次執行	小
+QualityAlerts		Monitoring	⭐⭐⭐	依品質檢查	小
+KeywordsLog		Log		⭐⭐⭐	每次搜尋	中
+RelatedQueriesLog	Log		⭐⭐		每日		中
+DataQualityRules	Config		⭐⭐		很少		小
+==================================================================================
+==================================================================================
+
+🎯 資料流向
+
+1. 資料收集階段：
+==================
+Google Trends API
+      ↓
+CrawlerExecutionLog (記錄執行)
+      ↓
+DailyTrendSnapshots (儲存快照)
+      ↓
+KeywordsMaster (更新關鍵字主檔)
+      ↓
+KeywordsLog (記錄搜尋結果)
+
+
+2. 資料處理階段：
+==================
+DailyTrendSnapshots
+      ↓
+KeywordRegionStats (彙總地區統計)
+      ↓
+KeywordCoOccurrence (分析共現關係)
+
+
+3. 品質檢查階段：
+==================
+DailyTrendSnapshots
+      ↓
+DataQualityLog (執行品質檢查)
+      ↓
+QualityAlerts (產生告警)
+
+
+4. SSAS 載入階段：
+==================
+各 Views (vw_*)
+      ↓
+SSAS Cube
+      ↓
+Power BI
+
+
+5. 分析應用階段：
+==================
+Power BI
+      ↓
+報表 & 儀表板
+      ↓
+使用者洞察
+
+
+==================================================================================
+==================================================================================

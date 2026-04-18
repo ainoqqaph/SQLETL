@@ -1,7 +1,7 @@
 USE [MicrosoftRDB];
 GO
 
--- 1. 每日趨勢快照 (Idempotent Upsert 架構)
+-- 1. 每日趨勢快照
 CREATE PROCEDURE [dbo].[usp_InsertDailySnapshots]
     @SnapshotDate DATE = NULL
 AS
@@ -16,7 +16,7 @@ BEGIN
     WHERE krs.LogDate = @SnapshotDate
     GROUP BY krs.KeywordID, krs.RegionID;
 
-    -- 步驟 1：更新已存在記錄 (防止重複)
+    -- 步驟 1：更新現有記錄
     UPDATE target
     SET SearchVolume = source.SearchVolume, TrendRank = source.TrendRank, SnapshotTime = GETDATE()
     FROM dbo.DailyTrendSnapshots target
@@ -36,7 +36,7 @@ BEGIN
 END;
 GO
 
--- 2. 增強版資料品質監控 (DQM)
+-- 2. 資料品質監控 (DQM)
 CREATE PROCEDURE [dbo].[usp_CheckDataQuality_Enhanced]
     @CheckDate DATE = NULL,
     @RegionID INT = NULL,
@@ -49,7 +49,6 @@ BEGIN
     DECLARE @TotalKeywords INT, @KeywordsWithVolume INT, @KeywordsWithRank INT, @KeywordsWithCategory INT;
     DECLARE @VolumeComp DECIMAL(5,2), @OverallStatus NVARCHAR(20) = N'正常', @Comments NVARCHAR(1000) = '';
     
-    -- 統計
     SELECT @TotalKeywords = COUNT(DISTINCT KeywordID),
            @KeywordsWithVolume = COUNT(DISTINCT CASE WHEN SearchVolume IS NOT NULL THEN KeywordID END)
     FROM dbo.KeywordRegionStats WHERE LogDate = @CheckDate AND (@RegionID IS NULL OR RegionID = @RegionID);

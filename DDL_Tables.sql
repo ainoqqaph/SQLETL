@@ -1,7 +1,7 @@
 USE [MicrosoftRDB];
 GO
 
--- 1. 維度表 (Dimension Tables)
+-- 1. 維度表
 CREATE TABLE [dbo].[RegionsMaster](
     [RegionID] INT PRIMARY KEY,
     [RegionCode] NVARCHAR(10) NOT NULL UNIQUE,
@@ -27,7 +27,7 @@ CREATE TABLE [dbo].[DimDate](
     [DateWeekday] INT
 );
 
--- 2. 狀態與日誌表 (Log & Staging Tables)
+-- 2. 狀態與日誌表
 CREATE TABLE [dbo].[KeywordsLog](
     [LogID] INT PRIMARY KEY,
     [KeywordID] INT NOT NULL REFERENCES [dbo].[KeywordsMaster](KeywordID),
@@ -57,7 +57,7 @@ CREATE TABLE [dbo].[CrawlerExecutionLog](
     [UpdatedAt] DATETIME
 );
 
--- 3. 核心事實表 (Core Fact Tables)
+-- 3. 核心事實表
 CREATE TABLE [dbo].[KeywordRegionStats](
     [StatsID] INT PRIMARY KEY,
     [KeywordID] INT NOT NULL REFERENCES [dbo].[KeywordsMaster](KeywordID),
@@ -84,7 +84,7 @@ CREATE TABLE [dbo].[DailyTrendSnapshots](
     CONSTRAINT [UQ_Snapshot_Daily] UNIQUE ([KeywordID], [RegionID], [SnapshotDate])
 );
 
--- 4. 數據品質監控表 (Data Quality Tables)
+-- 4. 數據品質監控表
 CREATE TABLE [dbo].[DataQualityLog](
     [QualityID] INT PRIMARY KEY,
     [CheckDate] DATE NOT NULL,

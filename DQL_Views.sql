@@ -1,7 +1,7 @@
 USE [MicrosoftRDB];
 GO
 
--- 1. 生成 Power BI 專用 Fact 表 (含 DateKey 生成邏輯)
+-- 1. 生成Fact 表
 CREATE VIEW [dbo].[vw_FactDailyTrends] AS
 SELECT 
     s.SnapshotID,
@@ -24,7 +24,7 @@ SELECT
 FROM dbo.DailyTrendSnapshots s;
 GO
 
--- 2. 爬蟲執行與資料品質監控儀表板
+-- 2.資料品質監控儀表板
 CREATE VIEW [dbo].[vw_DataQualityDashboard] AS
 SELECT 
     dq.CheckDate,
@@ -51,7 +51,7 @@ FROM dbo.DataQualityLog dq
 LEFT JOIN dbo.RegionsMaster r ON dq.RegionID = r.RegionID;
 GO
 
--- 3. 找出爆發成長的高價值關鍵字
+-- 3. 找出高價值關鍵字
 CREATE VIEW [dbo].[vw_TopRisingKeywords] AS
 SELECT TOP 100
     s.SnapshotDate,
